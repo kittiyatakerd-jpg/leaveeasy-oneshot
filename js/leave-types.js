@@ -1,18 +1,26 @@
 // ─────────────────────────────────────────────────────────────
 // js/leave-types.js — หน้าที่ 4 จัดการประเภทการลา
-// สัปดาห์ที่ 6 (ต้นสัปดาห์): เพิ่ม แก้ ลบ ในหน่วยความจำเท่านั้น
+// CRUD ที่สมบูรณ์ บนฐานข้อมูล Firestore
 // ─────────────────────────────────────────────────────────────
 
 (function () {
-  var รายการ = window.LEAVE_DATA.leaveTypes.slice();   // ทำสำเนาไว้แก้
+  เมื่อรู้ผู้ใช้(function (ผู้ใช้) {
   var ที่วางตาราง = document.getElementById("ตารางประเภท");
   var ช่องชื่อใหม่ = document.getElementById("ชื่อประเภทใหม่");
   var กล่องเตือน = document.getElementById("เตือนประเภท");
 
-  วาดตาราง();
-  document.getElementById("ปุ่มเพิ่ม").addEventListener("click", เพิ่มประเภท);
+  // อ่านประเภทการลาจาก Firestore แล้วแสดงในตาราง
+  db.collection("leaveTypes").onSnapshot(function (querySnapshot) {
+    var รายการ = [];
+    querySnapshot.forEach(function (doc) {
+      var ประเภท = doc.data();
+      ประเภท.id = doc.id;
+      รายการ.push(ประเภท);
+    });
+    วาดตาราง(รายการ);
+  });
 
-  function วาดตาราง() {
+  function วาดตาราง(รายการ) {
     if (รายการ.length === 0) {
       ที่วางตาราง.innerHTML = "<p>ยังไม่มีประเภทการลาในระบบ</p>";
       return;
@@ -23,7 +31,7 @@
       html +=
         "<tr><td>" + esc(ประเภท.name) + "</td><td>" +
         '<button type="button" class="btn-ghost" data-edit="' + esc(ประเภท.id) + '">แก้ไข</button> ' +
-        '<button type="button" class="btn-danger" data-del="' + esc(ประเภท.id) + '">ลบ</button>' +
+        '<button type="button" class="btn-danger" data-del="' + esc(ประเภท.id) + '" data-name="' + esc(ประเภท.name) + '">ลบ</button>' +
         "</td></tr>";
     });
     html += "</tbody></table>";
@@ -33,9 +41,11 @@
       ปุ่ม.addEventListener("click", function () { แก้ประเภท(ปุ่ม.dataset.edit); });
     });
     ที่วางตาราง.querySelectorAll("[data-del]").forEach(function (ปุ่ม) {
-      ปุ่ม.addEventListener("click", function () { ลบประเภท(ปุ่ม.dataset.del); });
+      ปุ่ม.addEventListener("click", function () { ลบประเภท(ปุ่ม.dataset.del, ปุ่ม.dataset.name); });
     });
   }
+
+  document.getElementById("ปุ่มเพิ่ม").addEventListener("click", เพิ่มประเภท);
 
   function เพิ่มประเภท() {
     var ชื่อ = ช่องชื่อใหม่.value.trim();
@@ -45,24 +55,44 @@
       return;
     }
     กล่องเตือน.classList.add("hidden");
-    รายการ.push({ id: "lt-ใหม่-" + Date.now(), name: ชื่อ });
-    ช่องชื่อใหม่.value = "";
-    วาดตาราง();
+
+    // บันทึกลง Firestore
+    db.collection("leaveTypes").add({ name: ชื่อ })
+      .then(function () {
+        ช่องชื่อใหม่.value = "";
+      })
+      .catch(function (error) {
+        กล่องเตือน.textContent = "⚠️ เกิดข้อผิดพลาด: " + error.message;
+        กล่องเตือน.classList.remove("hidden");
+      });
   }
 
   function แก้ประเภท(id) {
-    var ประเภท = รายการ.find(function (t) { return t.id === id; });
-    var ชื่อใหม่ = prompt("แก้ชื่อประเภทการลา", ประเภท.name);
-    if (ชื่อใหม่ === null) return;              // กดยกเลิก
-    if (!ชื่อใหม่.trim()) { alert("ชื่อประเภทการลาว่างเปล่าไม่ได้"); return; }
-    ประเภท.name = ชื่อใหม่.trim();
-    วาดตาราง();
+    db.collection("leaveTypes").doc(id).get().then(function (doc) {
+      if (!doc.exists) {
+        alert("ประเภทการลาหายไป");
+        return;
+      }
+
+      var ประเภท = doc.data();
+      var ชื่อใหม่ = prompt("แก้ชื่อประเภทการลา", ประเภท.name);
+      if (ชื่อใหม่ === null) return;              // กดยกเลิก
+      if (!ชื่อใหม่.trim()) { alert("ชื่อประเภทการลาว่างเปล่าไม่ได้"); return; }
+
+      db.collection("leaveTypes").doc(id).update({ name: ชื่อใหม่.trim() })
+        .catch(function (error) {
+          alert("เกิดข้อผิดพลาด: " + error.message);
+        });
+    });
   }
 
-  function ลบประเภท(id) {
-    var ประเภท = รายการ.find(function (t) { return t.id === id; });
-    if (!confirm('ยืนยันการลบประเภท "' + ประเภท.name + '" หรือไม่')) return;
-    รายการ = รายการ.filter(function (t) { return t.id !== id; });
-    วาดตาราง();
+  function ลบประเภท(id, ชื่อ) {
+    if (!confirm('ยืนยันการลบประเภท "' + ชื่อ + '" หรือไม่')) return;
+
+    db.collection("leaveTypes").doc(id).delete()
+      .catch(function (error) {
+        alert("เกิดข้อผิดพลาด: " + error.message);
+      });
   }
+  });
 })();

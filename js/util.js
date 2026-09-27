@@ -30,3 +30,44 @@ function เวลาตอนนี้() {
 function ค่าจากURL(ชื่อ) {
   return new URLSearchParams(location.search).get(ชื่อ) || "";
 }
+
+// ถาม AI ผ่าน OpenRouter (ใช้ OPENROUTER_API_KEY / OPENROUTER_MODEL จาก js/ai-config.js)
+// คืนค่าเป็น Promise ของข้อความคำตอบ · ตัดเวลาที่ 15 วินาทีด้วย AbortController
+// หน้าที่จะเรียกฟังก์ชันนี้ต้องใส่ <script src="js/ai-config.js"> ไว้ก่อน js/util.js
+function ถามAI(คำสั่งระบบ, คำถาม) {
+  if (typeof OPENROUTER_API_KEY === "undefined" || !OPENROUTER_API_KEY) {
+    return Promise.reject(new Error("ยังไม่ได้ตั้งค่าคีย์ AI (js/ai-config.js)"));
+  }
+
+  var ตัวยกเลิก = new AbortController();
+  var ตัวจับเวลา = setTimeout(function () { ตัวยกเลิก.abort(); }, 15000);
+
+  return fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + OPENROUTER_API_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: "system", content: คำสั่งระบบ },
+        { role: "user", content: คำถาม }
+      ]
+    }),
+    signal: ตัวยกเลิก.signal
+  }).then(function (res) {
+    if (!res.ok) throw new Error("AI ตอบกลับผิดพลาด (HTTP " + res.status + ")");
+    return res.json();
+  }).then(function (ข้อมูล) {
+    var คำตอบ = ข้อมูล && ข้อมูล.choices && ข้อมูล.choices[0] &&
+                ข้อมูล.choices[0].message && ข้อมูล.choices[0].message.content;
+    if (!คำตอบ) throw new Error("AI ไม่ได้ส่งคำตอบกลับมา");
+    return String(คำตอบ).trim();
+  }).catch(function (err) {
+    if (err && err.name === "AbortError") throw new Error("AI ใช้เวลานานเกิน 15 วินาที");
+    throw err;
+  }).finally(function () {
+    clearTimeout(ตัวจับเวลา);
+  });
+}

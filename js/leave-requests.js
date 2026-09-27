@@ -1,25 +1,43 @@
 // ─────────────────────────────────────────────────────────────
 // js/leave-requests.js — หน้าที่ 1 รายการใบลา
-// สัปดาห์ที่ 6 (ต้นสัปดาห์): อ่านจากข้อมูลปลอมใน js/data.js
+// อ่านจาก Firestore collection leaveRequests
 // ─────────────────────────────────────────────────────────────
 
 (function () {
+  เมื่อรู้ผู้ใช้(function (ผู้ใช้) {
   var กล่อง = document.getElementById("ผลลัพธ์");
 
-  // ใบลาจากข้อมูลปลอม บวกกับใบที่เพิ่งยื่นในหน้าถัดไป
-  // (สัปดาห์นี้ยังไม่ต่อฐานข้อมูล ใบที่ยื่นใหม่จึงหายเมื่อปิดเบราว์เซอร์)
-  var ใบลาที่ยื่นใหม่ = JSON.parse(sessionStorage.getItem("ใบลาที่ยื่นใหม่") || "[]");
-  var ใบลาทั้งหมด = window.LEAVE_DATA.leaveRequests.concat(ใบลาที่ยื่นใหม่);
+  // กฎความปลอดภัยกำหนดว่า employee อ่านได้เฉพาะใบของตัวเอง (query ต้องกรองด้วย where ก่อน
+  // ถ้าไม่กรองแล้ว query ทั้งคอลเลกชัน Firestore จะปฏิเสธทั้งชุดทันที) ส่วน manager/hr อ่านได้ทุกใบ
+  // จึงต้องเช็ค role ก่อนว่าจะ query แบบไหน
+  db.collection("users").doc(ผู้ใช้.uid).get().then(function (เอกสารผู้ใช้) {
+    var role = เอกสารผู้ใช้.exists ? เอกสารผู้ใช้.data().role : "employee";
+    var query = (role === "manager" || role === "hr")
+      ? db.collection("leaveRequests")
+      : db.collection("leaveRequests").where("requesterId", "==", ผู้ใช้.uid);
 
-  // ถ้ามีสถานะติดมาท้าย URL ให้กรองเฉพาะสถานะนั้น
-  var สถานะที่กรอง = ค่าจากURL("status");
-  if (สถานะที่กรอง) {
-    ใบลาทั้งหมด = ใบลาทั้งหมด.filter(function (ใบ) { return ใบ.status === สถานะที่กรอง; });
-    document.querySelector(".subtitle").textContent =
-      "กำลังแสดงเฉพาะใบลาที่สถานะ " + สถานะที่กรอง + " · กดเมนู รายการใบลา เพื่อดูทั้งหมด";
-  }
+    query.onSnapshot(function (querySnapshot) {
+      var ใบลาทั้งหมด = [];
+      querySnapshot.forEach(function (doc) {
+        var ข้อมูล = doc.data();
+        ข้อมูล.id = doc.id;
+        ใบลาทั้งหมด.push(ข้อมูล);
+      });
 
-  แสดงตาราง(ใบลาทั้งหมด);
+      // ถ้ามีสถานะติดมาท้าย URL ให้กรองเฉพาะสถานะนั้น
+      var สถานะที่กรอง = ค่าจากURL("status");
+      var ผลลัพธ์ = ใบลาทั้งหมด;
+      if (สถานะที่กรอง) {
+        ผลลัพธ์ = ผลลัพธ์.filter(function (ใบ) { return ใบ.status === สถานะที่กรอง; });
+        document.querySelector(".subtitle").textContent =
+          "กำลังแสดงเฉพาะใบลาที่สถานะ " + สถานะที่กรอง + " · กดเมนู รายการใบลา เพื่อดูทั้งหมด";
+      }
+
+      แสดงตาราง(ผลลัพธ์);
+    }, function (err) {
+      กล่อง.innerHTML = "<p>โหลดข้อมูลไม่สำเร็จ: " + esc(err.message) + "</p>";
+    });
+  });
 
   function แสดงตาราง(รายการ) {
     if (รายการ.length === 0) {
@@ -57,4 +75,5 @@
       });
     });
   }
+  });
 })();

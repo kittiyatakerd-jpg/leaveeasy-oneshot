@@ -28,6 +28,29 @@
   if (ที่วาง) ที่วาง.innerHTML = html;
 })();
 
+// แสดงชื่อ/อีเมลผู้ใช้ที่ล็อกอินอยู่ + ปุ่มออกจากระบบ มุมขวาของ nav
+// (ใช้ auth จาก js/firebase-config.js — ไฟล์นี้ต้องโหลดหลัง firebase-config.js เสมอ)
+if (typeof auth !== "undefined") {
+  auth.onAuthStateChanged(function (ผู้ใช้) {
+    var ที่แสดงผู้ใช้ = document.getElementById("navUser");
+    if (!ที่แสดงผู้ใช้) return;
+
+    if (!ผู้ใช้) {
+      ที่แสดงผู้ใช้.innerHTML = "";
+      return;
+    }
+
+    var ชื่อที่แสดง = ผู้ใช้.displayName || ผู้ใช้.email;
+    ที่แสดงผู้ใช้.innerHTML =
+      "<span>" + esc(ชื่อที่แสดง) + "</span>" +
+      '<button type="button" class="btn-ghost" id="ปุ่มออกจากระบบ">ออกจากระบบ</button>';
+
+    document.getElementById("ปุ่มออกจากระบบ").addEventListener("click", function () {
+      auth.signOut().then(function () { location.href = "login.html"; });
+    });
+  });
+}
+
 // แถบเตือนสีเหลือง ใช้ตอนที่ยังไม่ได้ตั้งค่า Firebase
 function showConfigWarning(ข้อความ) {
   var กล่อง = document.createElement("div");

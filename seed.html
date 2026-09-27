@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚙️ ใส่ข้อมูลตัวอย่าง · LeaveEasy</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .seed-container { max-width: 600px; margin: 40px auto; }
+    .seed-info { background: #fff3cd; padding: 16px; border-radius: 4px; margin: 20px 0; }
+    .seed-button { font-size: 16px; padding: 12px 24px; background: #dc3545; color: white; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
+  <script src="js/firebase-config.js" defer></script>
+  <script src="js/util.js" defer></script>
+  <script src="js/auth-guard.js" defer></script>
+  <script src="js/seed.js" defer></script>
+</head>
+<body>
+  <div class="seed-container">
+    <h1>⚙️ ใส่ข้อมูลตัวอย่าง (Seed Data)</h1>
+
+    <div class="seed-info">
+      <strong>⚠️ หน้านี้เป็นเครื่องมือสำหรับพัฒนา</strong>
+      <p>ใส่ข้อมูลตัวอย่างลงฐานข้อมูล Firestore ตามข้อกำหนดในเอกสาร leaveeasy-spec.md ตอนที่ 7</p>
+      <p>ข้อมูลจะถูกเพิ่มเข้า Firestore และแสดงในหน้าต่างอื่น ๆ ทันที</p>
+    </div>
+
+    <div style="text-align: center;">
+      <button id="seedButton" class="seed-button">📥 ใส่ข้อมูลตัวอย่าง</button>
+      <div id="statusMessage" style="margin-top: 16px; font-weight: bold;"></div>
+    </div>
+
+    <div style="margin-top: 40px; text-align: center;">
+      <a href="index.html" class="btn btn-ghost">← กลับไปหน้าแรก</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isManagerOrHr() {
+      return isSignedIn() && myRole() in ['manager', 'hr'];
+    }
+    function isHr() {
+      return isSignedIn() && myRole() == 'hr';
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    match /leaveTypes/{typeId} {
+      allow read: if isSignedIn();
+      allow write: if isHr();
+    }
+
+    match /leaveRequests/{requestId} {
+      allow read: if isSignedIn() &&
+        (resource.data.requesterId == request.auth.uid || isManagerOrHr());
+      allow create: if isSignedIn() && request.resource.data.requesterId == request.auth.uid
+                    && request.resource.data.status == 'รอพิจารณา';
+      allow update: if isSignedIn() && isManagerOrHr()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aiSuggestion']);
+      allow delete: if isSignedIn() && resource.data.requesterId == request.auth.uid
+                    && resource.data.status == 'รอพิจารณา';
+
+      match /approvals/{approvalId} {
+        allow read: if isSignedIn() &&
+          (get(/databases/$(database)/documents/leaveRequests/$(requestId)).data.requesterId == request.auth.uid
+           || isManagerOrHr());
+        allow create: if isManagerOrHr() ||
+          (isSignedIn() &&
+           get(/databases/$(database)/documents/leaveRequests/$(requestId)).data.requesterId == request.auth.uid);
+      }
+
+      match /aiLog/{logId} {
+        allow read, create: if isManagerOrHr();
+      }
+    }
+  }
+}

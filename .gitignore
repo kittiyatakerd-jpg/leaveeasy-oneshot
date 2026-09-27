@@ -21,6 +21,25 @@ desktop.ini
 .idea/
 
 
+# ── ผลลัพธ์จากการรัน Playwright ──
+playwright-report/
+test-results/
+blob-report/
+.playwright-mcp/
+
+
+# ── ไฟล์คีย์/ลับ — ห้ามหลุดขึ้น GitHub เด็ดขาด ──
+# หมายเหตุ: apiKey ใน js/firebase-config.js ไม่ใช่ความลับ (ออกแบบมาให้เห็นฝั่งเบราว์เซอร์ได้
+# ความปลอดภัยจริงอยู่ที่ Firestore Security Rules)
+*.env
+.env.*
+*serviceAccountKey*.json
+*service-account*.json
+firebase-debug.log
+.firebase/
+js/ai-config.js
+
+
 # ─────────────────────────────────────────────────────────────
 # ✅ วิธีตรวจว่าใช้ได้จริง — ก่อน push ทุกครั้ง พิมพ์บอก Claude ว่า
 #
